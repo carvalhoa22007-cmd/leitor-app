@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Meu App de Leitura</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<meta name="color-scheme" content="light dark" />
+<style>
+.glass { backdrop-filter: saturate(140%) blur(12px); }
+.fade-in { animation: fade-in .35s ease both; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
+.slide-up { animation: slide-up .25s ease both; }
+@keyframes slide-up { from { opacity: 0; transform: translateY(12px);} to { opacity: 1; transform: translateY(0);} }
+.ring-focus { outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,.4); }
+.hide-scrollbar::-webkit-scrollbar{width:0;height:0}
+</style>
+</head>
+<body class="min-h-full bg-gradient-to-br from-indigo-800 via-violet-700 to-fuchsia-700 text-white selection:bg-indigo-300/40 selection:text-white">
+<div id="app" class="min-h-screen">
+<!-- Header -->
+<header class="px-5 sm:px-8 pt-8">
+<div class="max-w-7xl mx-auto glass bg-white/10 dark:bg-black/20 rounded-2xl p-4 sm:p-6 border border-white/15">
+<div class="flex flex-col md:flex-row md:items-center gap-4">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-xl bg-gradient-to-br from-fuchsia-400 to-indigo-400 grid place-content-center text-indigo-950 font-black">L</div>
+<div>
+<h1 class="text-2xl sm:text-3xl font-bold">Meu App de Leitura</h1>
+<p class="text-white/70 text-sm">Sua biblioteca, progresso, notas e metas — tudo em um só lugar.</p>
+</div>
+</div>
+
+<div class="flex-1"></div>
+
+<div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+<div class="relative flex-1">
+<input id="searchInput" type="search" placeholder="Buscar por título ou autor..."
+class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/10 border border-white/15 placeholder-white/60 text-white focus:ring-2 focus:ring-indigo-400/60 focus:outline-none" />
+<svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-white/70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/>
+</svg>
+</div>
+<button id="addBookBtn" class="px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 active:scale-[0.99] transition text-white font-semibold flex items-center gap-2">
+<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
+Adicionar livro
+</button>
+<button id="themeToggle" class="px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 transition flex items-center gap-2">
+<svg id="iconSun" class="w-5 h-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m14.95 6.95-1.41-1.41M7.46 6.46 6.05 5.05m12.9 0-1.41 1.41M7.46 17.54 6.05 18.95M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
+<svg id="iconMoon" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+<span class="hidden sm:inline">Tema</span>
+</button>
+</div>
+</div>
+
+<!-- Tabs -->
+<div class="mt-5 flex flex-wrap items-center gap-2">
+<button data-tab="library" class="tab-btn px-3.5 py-2 rounded-lg bg-white/15 border border-white/15 text-white font-medium">Biblioteca</button>
+<button data-tab="goals" class="tab-btn px-3.5 py-2 rounded-lg hover:bg-white/10 border border-white/15 text-white/90">Metas</button>
+<button data-tab="notes" class="tab-btn px-3.5 py-2 rounded-lg hover:bg-white/10 border border-white/15 text-white/90">Notas</button>
+<button data-tab="stats" class="tab-btn px-3.5 py-2 rounded-lg hover:bg-white/10 border border-white/15 text-white/90">Estatísticas</button>
+<button data-tab="settings" class="tab-btn px-3.5 py-2 rounded-lg hover:bg-white/10 border border-white/15 text-white/90">Configurações</button>
+
+<div class="ml-auto flex items-center gap-2">
+<select id="filterStatus" class="px-3 py-2 rounded-lg bg-white/10 border border-white/15">
+<option value="">Status: todos</option>
+<option value="Lendo">Lendo</option>
+<option value="Quero ler">Quero ler</option>
+<option value="Concluído">Concluído</option>
+</select>
+<select id="filterGenre" class="px-3 py-2 rounded-lg bg-white/10 border border-white/15">
+<option value="">Gênero: todos</option>
+<option>Ficção</option>
+<option>Fantasia</option>
+<option>Romance</option>
+<option>Não-ficção</option>
+<option>Biografia</option>
+<option>Negócios</option>
+<option>Técnico</option>
+<option>Outro</option>
+</select>
+</div>
+</div>
+</div>
+</header>
+
+<!-- Main Content -->
+<main class="px-5 sm:px-8 pb-24 pt-6">
+<div class="max-w-7xl mx-auto space-y-6">
+
+<!-- LIBRARY -->
+<section id="tab-library" class="glass bg-white/10 dark:bg-black/20 rounded-2xl p-4 sm:p-6 border border-white/15 fade-in">
+<div id="libraryEmpty" class="text-center py-12 hidden">
+<div class="mx-auto h-16 w-16 rounded-2xl bg-white/10 grid place-content-center mb-4">
+<svg class="w-8 h-8 text-white/90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19a2 2 0 0 0 2 2h11M4 7h15M6 7v12m0-12a2 2 0 0 1 2-2h11v12a2 2 0 0 1-2 2H6"/></svg>
+</div>
+<h2 class="text-xl font-semibold">Sua estante está vazia</h2>
+<p class="text-white/70 mt-1">Clique em “Adicionar livro” para começar.</p>
+</div>
+
+<div id="booksGrid" class="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
+</section>
+
+<!-- GOALS -->
+<section id="tab-goals" class="hidden glass bg-white/10 dark:bg-black/20 rounded-2xl p-4 sm:p-6 border border-white/15">
+<div class="grid md:grid-cols-2 gap-5">
+<div class="space-y-5">
+<div class="rounded-xl border border-white/15 bg-white/5 p-4">
+<div class="flex items-center justify-between">
+<h3 class="font-semibold">Metas de leitura</h3>
+<span id="streakLabel" class="text-sm px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-200 border border-amber-300/30">🔥 0 dia</span>
+</div>
+<div class="mt-4 space-y-4">
+<div>
+<div class="flex justify-between text-sm mb-1"><span>Meta diária</span><span id="dailyProgressLabel">0/0 páginas</span></div>
+<div class="h-3 rounded-full bg-white/10 overflow-hidden"><div id="dailyProgressBar" class="h-full w-0 bg-gradient-to-r from-indigo-400 to-fuchsia-400"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-1"><span>Meta semanal</span><span id="weeklyProgressLabel">0/0 páginas</span></div>
+<div class="h-3 rounded-full bg-white/10 overflow-hidden"><div id="weeklyProgressBar" class="h-full w-0 bg-gradient-to-r from-teal-400 to-emerald-400"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-1"><span>Meta mensal</span><span id="monthlyProgressLabel">0/0 páginas</span></div>
+<div class="h-3 rounded-full bg-white/10 overflow-hidden"><div id="monthlyProgressBar" class="h-full w-0 bg-gradient-to-r from-amber-400 to-orange-400"></div></div>
+</div>
+</div>
+</div>
+
+<div class="rounded-xl border border-white/15 bg-white/5 p-4">
+<h3 class="font-semibold mb-3">Registrar leitura rápida</h3>
+<form id="quickLogForm" class="grid sm:grid-cols-5 gap-3">
+<select id="quickBook" required class="sm:col-span-2 px-3 py-2 rounded-lg bg-white/10 border border-white/15"></select>
+<input id="quickPages" type="number" min="1" placeholder="Páginas" required class="px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+<input id="quickDate" type="date" class="px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+<button class="sm:col-span-1 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 font-semibold">Salvar</button>
+</form>
+<p id="quickLogMsg" class="text-sm text-emerald-200 mt-2 hidden">Leitura registrada!</p>
+</div>
+</div>
+
+<div class="rounded-xl border border-white/15 bg-white/5 p-4">
+<h3 class="font-semibold mb-3">Resumo</h3>
+<ul class="space-y-3">
+<li class="flex items-center justify-between gap-3">
+<span class="text-white/80">Páginas lidas hoje</span><strong id="pagesToday">0</strong>
+</li>
+<li class="flex items-center justify-between gap-3">
+<span class="text-white/80">Páginas nesta semana</span><strong id="pagesWeek">0</strong>
+</li>
+<li class="flex items-center justify-between gap-3">
+<span class="text-white/80">Páginas neste mês</span><strong id="pagesMonth">0</strong>
+</li>
+<li class="flex items-center justify-between gap-3">
+<span class="text-white/80">Tempo estimado restante (livro atual)</span><strong id="etaCurrent">—</strong>
+</li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- NOTES -->
+<section id="tab-notes" class="hidden glass bg-white/10 dark:bg-black/20 rounded-2xl p-4 sm:p-6 border border-white/15">
+<div class="grid md:grid-cols-3 gap-5">
+<div class="md:col-span-1 rounded-xl border border-white/15 bg-white/5 p-4">
+<h3 class="font-semibold mb-3">Nova nota</h3>
+<form id="noteForm" class="space-y-3">
+<select id="noteBook" required class="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15"></select>
+<input id="notePage" type="number" min="1" placeholder="Página (opcional)" class="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+<textarea id="noteText" rows="5" placeholder="Escreva sua nota ou citação..." class="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15"></textarea>
+<button class="w-full px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 font-semibold">Salvar nota</button>
+</form>
+<button id="exportNotesBtn" class="w-full mt-3 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15">Exportar notas (.txt)</button>
+<p id="noteSavedMsg" class="text-sm text-emerald-200 mt-2 hidden">Nota salva!</p>
+</div>
+<div class="md:col-span-2 rounded-xl border border-white/15 bg-white/5 p-4">
+<div class="flex items-center justify-between">
+<h3 class="font-semibold">Notas salvas</h3>
+<input id="notesSearch" type="search" placeholder="Buscar em notas..." class="px-3 py-2 rounded-lg bg-white/10 border border-white/15 w-48" />
+</div>
+<div id="notesList" class="mt-4 space-y-3 max-h-[460px] overflow-auto hide-scrollbar"></div>
+</div>
+</div>
+</section>
+
+<!-- STATS -->
+<section id="tab-stats" class="hidden glass bg-white/10 dark:bg-black/20 rounded-2xl p-4 sm:p-6 border border-white/15">
+<div class="grid lg:grid-cols-3 gap-5">
+<div class="rounded-xl border border-white/15 bg-white/5 p-4">
+<h3 class="font-semibold mb-3">Números gerais</h3>
+<div class="grid grid-cols-3 gap-3">
+<div class="rounded-lg bg-white/10 p-3 text-center">
+<div class="text-sm text-white/80">Concluídos</div>
+<div id="statCompleted" class="text-2xl font-bold">0</div>
+</div>
+<div class="rounded-lg bg-white/10 p-3 text-center">
+<div class="text-sm text-white/80">Páginas</div>
+<div id="statPages" class="text-2xl font-bold">0</div>
+</div>
+<div class="rounded-lg bg-white/10 p-3 text-center">
+<div class="text-sm text-white/80">Tempo (h)</div>
+<div id="statHours" class="text-2xl font-bold">0</div>
+</div>
+</div>
+</div>
+
+<div class="lg:col-span-2 rounded-xl border border-white/15 bg-white/5 p-4">
+<div class="flex items-center justify-between">
+<h3 class="font-semibold">Livros por mês</h3>
+<span class="text-sm text-white/70">últimos 12 meses</span>
+</div>
+<div id="chartBooksPerMonth" class="mt-3 h-40"></div>
+</div>
+
+<div class="lg:col-span-3 rounded-xl border border-white/15 bg-white/5 p-4">
+<div class="flex items-center justify-between">
+<h3 class="font-semibold">Gêneros mais lidos</h3>
+<span class="text-sm text-white/70">por páginas lidas</span>
+</div>
+<div id="chartGenres" class="mt-3 h-56"></div>
+</div>
+</div>
+</section>
+
+<!-- SETTINGS -->
+<section id="tab-settings" class="hidden glass bg-white/10 dark:bg-black/20 rounded-2xl p-4 sm:p-6 border border-white/15">
+<div class="grid md:grid-cols-2 gap-5">
+<div class="rounded-xl border border-white/15 bg-white/5 p-4 space-y-3">
+<h3 class="font-semibold">Preferências</h3>
+<label class="block">
+<span class="text-sm text-white/80">Velocidade de leitura (páginas por hora)</span>
+<input id="speedInput" type="number" min="10" max="200" step="1" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+<div class="grid grid-cols-3 gap-3">
+<label class="block">
+<span class="text-sm text-white/80">Meta diária</span>
+<input id="goalDaily" type="number" min="1" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+<label class="block">
+<span class="text-sm text-white/80">Meta semanal</span>
+<input id="goalWeekly" type="number" min="1" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+<label class="block">
+<span class="text-sm text-white/80">Meta mensal</span>
+<input id="goalMonthly" type="number" min="1" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+</div>
+<button id="saveSettings" class="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 font-semibold">Salvar preferências</button>
+<p id="settingsMsg" class="text-sm text-emerald-200 hidden">Preferências atualizadas!</p>
+</div>
+
+<div class="rounded-xl border border-white/15 bg-white/5 p-4 space-y-3">
+<h3 class="font-semibold">Dados</h3>
+<div class="flex flex-wrap gap-3">
+<button id="exportDataBtn" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15">Exportar dados (.json)</button>
+<label class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 cursor-pointer">
+Importar dados
+<input id="importDataInput" type="file" accept=".json,application/json" class="hidden" />
+</label>
+<button id="clearDataBtn" class="px-4 py-2 rounded-lg bg-red-500/80 hover:bg-red-500 font-semibold">Apagar tudo</button>
+</div>
+<p class="text-sm text-white/70">Seus dados ficam guardados apenas no seu dispositivo.</p>
+</div>
+</div>
+</section>
+</div>
+</main>
+
+<!-- Add/Edit Book Modal -->
+<div id="bookModal" class="fixed inset-0 bg-black/60 hidden items-end sm:items-center justify-center z-50">
+<div class="w-full sm:max-w-xl glass bg-white/10 dark:bg-black/30 rounded-t-2xl sm:rounded-2xl border border-white/15 p-5 sm:p-6 slide-up">
+<div class="flex items-center justify-between gap-2">
+<div class="flex items-center gap-3">
+<h3 id="bookModalTitle" class="text-xl font-semibold">Adicionar livro</h3>
+<button id="openSearchBtn" type="button" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-sm flex items-center gap-2">
+<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/>
+</svg>
+Buscar online
+</button>
+</div>
+<button data-close="#bookModal" class="p-2 rounded-lg hover:bg-white/10">
+<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 18 12-12M6 6l12 12"/></svg>
+</button>
+</div>
+
+<!-- External Search Panel -->
+<div id="extSearchPanel" class="mt-3 hidden rounded-xl border border-white/15 bg-white/5 p-3">
+<form id="extSearchForm" class="flex flex-col sm:flex-row gap-2">
+<input id="extQuery" type="search" placeholder="Buscar título ou autor..." class="flex-1 px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+<div class="flex gap-2">
+<button class="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 font-semibold">Buscar</button>
+<button id="closeSearchPanel" type="button" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15">Fechar</button>
+</div>
+</form>
+<p id="extSearchMsg" class="text-xs text-white/70 mt-2">Resultados de fontes públicas (Open Library e Google Books). Alguns dados podem variar.</p>
+<div id="extResults" class="mt-3 max-h-64 overflow-auto space-y-2"></div>
+<div class="mt-2 flex items-center gap-2 text-xs text-white/70">
+<input id="toggleCovers" type="checkbox" class="accent-indigo-400" checked>
+<label for="toggleCovers">Mostrar miniaturas quando disponíveis</label>
+</div>
+</div>
+
+<form id="bookForm" class="grid sm:grid-cols-2 gap-3 mt-3">
+<input id="bookId" type="hidden" />
+<label class="sm:col-span-2">
+<span class="text-sm text-white/80">Título</span>
+<input id="bookTitle" required class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+<label>
+<span class="text-sm text-white/80">Autor</span>
+<input id="bookAuthor" required class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+<label>
+<span class="text-sm text-white/80">Gênero</span>
+<select id="bookGenre" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15">
+<option>Ficção</option><option>Fantasia</option><option>Romance</option><option>Não-ficção</option>
+<option>Biografia</option><option>Negócios</option><option>Técnico</option><option>Outro</option>
+</select>
+</label>
+<label>
+<span class="text-sm text-white/80">Páginas totais</span>
+<input id="bookPages" type="number" min="1" required class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+<label>
+<span class="text-sm text-white/80">Status</span>
+<select id="bookStatus" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15">
+<option>Lendo</option><option>Quero ler</option><option>Concluído</option>
+</select>
+</label>
+<div class="sm:col-span-2 flex items-center justify-end gap-3 mt-1">
+<button data-close="#bookModal" type="button" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15">Cancelar</button>
+<button class="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 font-semibold">Salvar</button>
+</div>
+</form>
+</div>
+</div>
+
+<!-- Progress Modal -->
+<div id="progressModal" class="fixed inset-0 bg-black/60 hidden items-end sm:items-center justify-center z-50">
+<div class="w-full sm:max-w-lg glass bg-white/10 dark:bg-black/30 rounded-t-2xl sm:rounded-2xl border border-white/15 p-5 sm:p-6 slide-up">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-semibold">Registrar progresso</h3>
+<button data-close="#progressModal" class="p-2 rounded-lg hover:bg-white/10">
+<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 18 12-12M6 6l12 12"/></svg>
+</button>
+</div>
+<form id="progressForm" class="grid sm:grid-cols-2 gap-3 mt-3">
+<input id="progressBookId" type="hidden" />
+<label class="sm:col-span-2">
+<span class="text-sm text-white/80">Livro</span>
+<input id="progressBookTitle" disabled class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+<label>
+<span class="text-sm text-white/80">Páginas lidas agora</span>
+<input id="progressPages" type="number" min="1" required class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+<label>
+<span class="text-sm text-white/80">Data</span>
+<input id="progressDate" type="date" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/15" />
+</label>
+<div class="sm:col-span-2 flex items-center justify-end gap-3 mt-1">
+<button data-close="#progressModal" type="button" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15">Cancelar</button>
+<button class="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 font-semibold">Salvar</button>
+</div>
+</form>
+</div>
+</div>
+
+</div>
+
+<script>
+// --- State & Storage ---
+const STORAGE_KEY = 'readerApp:data:v1';
+
+const defaultData = {
+settings: {
+theme: 'dark',
+speedPagesPerHour: 40,
+showCovers: true,
+goals: { daily: 20, weekly: 100, monthly: 400 },
+},
+books: [],
+notes: [],
+logs: []
+};
+
+let state = load();
+
+function uid() {
+if (crypto && crypto.randomUUID) return crypto.randomUUID();
+return 'id-' + Math.random().toString(36).slice(2) + Date.now();
+}
+
+function save() {
+localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function load() {
+try {
+const raw = localStorage.getItem(STORAGE_KEY);
+if (raw) return JSON.parse(raw);
+} catch(e) { console.warn('Falha ao carregar dados', e); }
+return JSON.parse(JSON.stringify(defaultData));
+}
+
+// --- Utilities ---
+const pad = n => String(n).padStart(2, '0');
+function todayStr() {
+const d = new Date();
+return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function toDateStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function parseDate(str) { const [y,m,da] = str.split('-').map(Number); return new Date(y, m-1, da); }
+
+function formatMinutes(min) {
+if (!isFinite(min) || min <= 0) return '—';
+const h = Math.floor(min/60);
+const m = Math.round(min%60);
+if (h === 0) return `${m} min`;
+if (m === 0) return `${h} h`;
+return `${h} h ${m} min`;
+}
+
+function getInitials(text) {
+const words = (text||'').trim().split(/\s+/).slice(0,2);
+return words.map(w=>w[0] ? w[0].toUpperCase() : '').join('').slice(0,2) || '📚';
+}
+
+const palettes = [
+['from-indigo-300','to-fuchsia-300'],
+['from-rose-300','to-amber-300'],
+['from-emerald-300','to-teal-300'],
+['from-sky-300','to-indigo-300'],
+['from-purple-300','to-pink-300'],
+['from-lime-300','to-emerald-300'],
+];
+function colorClassesFromString(s) {
+let hash = 0;
+for (let i=0;i<s.length;i++) hash = s.charCodeAt(i) + ((hash<<5)-hash);
+const idx = Math.abs(hash) % palettes.length;
+return palettes[idx];
+}
+
+function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+function sumPages(filterFn) {
+return state.logs.filter(filterFn).reduce((a,l)=>a + (Number(l.pages)||0),0);
+}
+
+function getWeekRange(date=new Date()){
+const d = new Date(date);
+const day = (d.getDay()+6)%7; // monday=0
+const start = new Date(d); start.setDate(d.getDate()-day);
+const end = new Date(start); end.setDate(start.getDate()+6);
+return { start, end };
+}
+
+function computeStreak() {
+const set = new Set(state.logs.map(l=>l.date));
+let count = 0;
+let d = new Date();
+while (true) {
+const key = toDateStr(d);
+if (!set.has(key)) break;
+count++; d.setDate(d.getDate()-1);
+}
+return count;
+}
+
+// --- Rendering ---
+const tabs = ['library', 'goals', 'notes', 'stats', 'settings'];
+function showTab(name) {
+tabs.forEach(t=>{
+document.getElementById(`tab-${t}`).classList.toggle('hidden', t!==name);
+const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
+if (btn) {
+if (t===name) { btn.classList.add('bg-white/15','text-white'); btn.classList.remove('hover:bg-white/10','text-white/90'); }
+else { btn.classList.remove('bg-white/15','text-white'); btn.classList.add('hover:bg-white/10','text-white/90'); }
+}
+});
+if (name==='stats') renderStats();
+}
+
+function applyTheme(){
+const theme = state.settings.theme || 'dark';
+const html = document.documentElement;
+const isDark = theme === 'dark';
+html.classList.toggle('dark', isDark);
+document.getElementById('iconSun').classList.toggle('hidden', !isDark);
+document.getElementById('iconMoon').classList.toggle('hidden', isDark);
+}
+
+function renderBooks() {
+const q = (document.getElementById('searchInput').value||'').toLowerCase();
+const fStatus = document.getElementById('filterStatus').value;
+const fGenre = document.getElementById('filterGenre').value;
+
+const books = state.books.filter(b=>{
+const matchesQuery = !q || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q);
+const matchesStatus = !fStatus || b.status === fStatus;
+const matchesGenre = !fGenre || b.genre === fGenre;
+return matchesQuery && matchesStatus && matchesGenre;
+});
+
+const grid = document.getElementById('booksGrid');
+grid.innerHTML = '';
+
+document.getElementById('libraryEmpty').classList.toggle('hidden', books.length !== 0);
+
+books.forEach(b=>{
+const pct = b.totalPages ? Math.min(100, Math.round((b.pagesRead||0)/b.totalPages*100)) : 0;
+const [c1,c2] = colorClassesFromString(b.title);
+const etaMin = b.totalPages && state.settings.speedPagesPerHour > 0
+? Math.max(0, Math.round(((b.totalPages - (b.pagesRead||0)) / state.settings.speedPagesPerHour) * 60))
+: 0;
+const card = document.createElement('div');
+card.className = 'rounded-2xl border border-white/15 bg-white/5 p-4 flex flex-col gap-3';
+const coverHTML = (state.settings.showCovers && b.coverThumb)
+? `<img src="${b.coverThumb}" alt="Capa" class="min-w-16 w-16 aspect-[3/4] rounded-xl object-cover" onerror="this.src=''; this.alt='Image failed to load'; this.style.display='none';">`
+: `<div class=\"min-w-16 w-16 aspect-[3/4] rounded-xl bg-gradient-to-br ${c1} ${c2} text-indigo-950 font-black grid place-content-center text-xl select-none\">${getInitials(b.title)}</div>`;
+card.innerHTML = `
+<div class="flex gap-3">
+${coverHTML}
+<div class="flex-1">
+<div class="flex items-start justify-between gap-2">
+<div>
+<h3 class="font-semibold leading-tight">${escapeHTML(b.title)}</h3>
+<p class="text-sm text-white/80">${escapeHTML(b.author)}</p>
+</div>
+<span class="px-2 py-1 rounded-full text-xs border border-white/20 bg-white/10">${escapeHTML(b.genre)}</span>
+</div>
+<div class="mt-3 space-y-1">
+<div class="flex justify-between text-xs text-white/70"><span>${b.pagesRead||0}/${b.totalPages} páginas</span><span>${pct}%</span></div>
+<div class="h-2 rounded-full bg-white/10 overflow-hidden"><div style="width:${pct}%" class="h-full bg-gradient-to-r from-indigo-400 to-fuchsia-400"></div></div>
+<div class="flex items-center justify-between text-xs text-white/80 mt-1">
+<span class="px-2 py-0.5 rounded-full bg-white/10 border border-white/15">${b.status}</span>
+<span>${etaMin ? 'Restante: ' + formatMinutes(etaMin) : '—'}</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex gap-2 mt-1">
+<button data-action="progress" data-id="${b.id}" class="flex-1 px-3 py-2 rounded-lg bg-indigo-500/90 hover:bg-indigo-500 text-white font-semibold">Progresso</button>
+<button data-action="note" data-id="${b.id}" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15">Nota</button>
+<button data-action="edit" data-id="${b.id}" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15">Editar</button>
+<button data-action="delete" data-id="${b.id}" class="px-3 py-2 rounded-lg bg-red-500/80 hover:bg-red-500 text-white">Excluir</button>
+</div>
+`;
+grid.appendChild(card);
+});
+
+populateQuickSelectors();
+updateGoalsSection();
+}
+
+function populateQuickSelectors(){
+const sel1 = document.getElementById('quickBook');
+const sel2 = document.getElementById('noteBook');
+[sel1, sel2].forEach(sel => { sel.innerHTML = ''; });
+
+const readingFirst = [...state.books].sort((a,b)=>{
+const order = { 'Lendo':0, 'Quero ler':1, 'Concluído':2 };
+return (order[a.status]??9) - (order[b.status]??9) || a.title.localeCompare(b.title);
+});
+
+readingFirst.forEach(b=>{
+const opt1 = document.createElement('option');
+opt1.value = b.id; opt1.textContent = b.title;
+sel1.appendChild(opt1);
+const opt2 = document.createElement('option');
+opt2.value = b.id; opt2.textContent = b.title;
+sel2.appendChild(opt2);
+});
+
+// progress modal book title is filled on open
+}
+
+function updateGoalsSection() {
+const tdy = todayStr();
+const week = getWeekRange(new Date());
+const monthStr = `${new Date().getFullYear()}-${pad(new Date().getMonth()+1)}`;
+
+const pagesDay = sumPages(l => l.date === tdy);
+const pagesWeek = sumPages(l => {
+const d = parseDate(l.date);
+return d >= week.start && d <= week.end;
+});
+const pagesMonth = sumPages(l => l.date.startsWith(monthStr));
+
+const goals = state.settings.goals;
+const setBar = (idBar, idLabel, value, goal) => {
+const pct = goal ? Math.min(100, Math.round(value/goal*100)) : 0;
+document.getElementById(idBar).style.width = pct + '%';
+document.getElementById(idLabel).textContent = `${value}/${goal||0} páginas`;
+};
+
+setBar('dailyProgressBar','dailyProgressLabel',pagesDay, goals.daily);
+setBar('weeklyProgressBar','weeklyProgressLabel',pagesWeek, goals.weekly);
+setBar('monthlyProgressBar','monthlyProgressLabel',pagesMonth, goals.monthly);
+
+document.getElementById('pagesToday').textContent = pagesDay;
+document.getElementById('pagesWeek').textContent = pagesWeek;
+document.getElementById('pagesMonth').textContent = pagesMonth;
+
+const streak = computeStreak();
+document.getElementById('streakLabel').textContent = `🔥 ${streak} ${streak===1?'dia':'dias'}`;
+
+const current = state.books.find(b=>b.status==='Lendo');
+let eta = '—';
+if (current && state.settings.speedPagesPerHour>0 && current.totalPages) {
+const remaining = Math.max(0, current.totalPages - (current.pagesRead||0));
+eta = formatMinutes(remaining / state.settings.speedPagesPerHour * 60);
+}
+document.getElementById('etaCurrent').textContent = eta;
+}
+
+function renderNotes() {
+const q = (document.getElementById('notesSearch').value||'').toLowerCase();
+const list = document.getElementById('notesList');
+list.innerHTML = '';
+
+const notes = state.notes
+.map(n => ({...n, book: state.books.find(b=>b.id===n.bookId)}))
+.filter(n => n.book)
+.filter(n => !q || (n.text.toLowerCase().includes(q) || n.book.title.toLowerCase().includes(q)));
+
+if (notes.length === 0) {
+const empty = document.createElement('div');
+empty.className = 'text-center text-white/70 py-6';
+empty.textContent = 'Sem notas por aqui.';
+list.appendChild(empty);
+return;
+}
+
+notes.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+
+notes.forEach(n=>{
+const [c1,c2] = colorClassesFromString(n.book.title);
+const item = document.createElement('div');
+item.className = 'rounded-xl border border-white/15 bg-white/5 p-3';
+item.innerHTML = `
+<div class="flex items-start gap-3">
+<div class="min-w-10 w-10 aspect-square rounded-lg bg-gradient-to-br ${c1} ${c2} text-indigo-950 font-black grid place-content-center text-sm">${getInitials(n.book.title)}</div>
+<div class="flex-1">
+<div class="flex items-center justify-between gap-2">
+<div class="font-semibold">${escapeHTML(n.book.title)}</div>
+<div class="text-xs text-white/70">${n.date || ''}</div>
+</div>
+<div class="text-sm text-white/90 mt-1 whitespace-pre-wrap">${escapeHTML(n.text)}</div>
+<div class="flex items-center justify-between mt-2">
+<div class="text-xs text-white/70">${n.page ? 'Página ' + n.page : ''}</div>
+<button data-del-note="${n.id}" class="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 border border-white/15 text-xs">Excluir</button>
+</div>
+</div>
+</div>
+`;
+list.appendChild(item);
+});
+}
+
+function renderStats(){
+const completed = state.books.filter(b=>b.status==='Concluído').length;
+const pagesTotal = state.logs.reduce((a,l)=>a+Number(l.pages||0),0);
+const hours = state.settings.speedPagesPerHour>0 ? (pagesTotal / state.settings.speedPagesPerHour) : 0;
+
+document.getElementById('statCompleted').textContent = completed;
+document.getElementById('statPages').textContent = pagesTotal;
+document.getElementById('statHours').textContent = Math.round(hours);
+
+const now = new Date();
+const months = [];
+for (let i=11;i>=0;i--){
+const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+months.push({ key, label: d.toLocaleDateString('pt-BR',{month:'short'}), value: 0 });
+}
+const completedDates = new Map();
+state.logs.forEach(l=>{
+const b = state.books.find(x=>x.id===l.bookId);
+if (!b) return;
+const before = (b._accumulated||0);
+b._accumulated = before + (Number(l.pages)||0);
+if (b._accumulated >= b.totalPages && !completedDates.has(b.id)) {
+completedDates.set(b.id, l.date);
+}
+});
+completedDates.forEach((dateStr)=>{
+months.forEach(m=>{
+if (dateStr.startsWith(m.key)) m.value++;
+});
+});
+state.books.forEach(b=>{ delete b._accumulated; });
+
+drawBarChart('chartBooksPerMonth', months.map(m=>({label:m.label, value:m.value})), {color:'#a78bfa'});
+
+const genreMap = {};
+state.logs.forEach(l=>{
+const b = state.books.find(x=>x.id===l.bookId);
+if (!b) return;
+genreMap[b.genre] = (genreMap[b.genre]||0) + Number(l.pages||0);
+});
+const genresData = Object.entries(genreMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([label,value])=>({label,value}));
+drawBarChart('chartGenres', genresData, {color:'#34d399'});
+}
+
+function drawBarChart(containerId, data, {color='#fff'}={}){
+const cont = document.getElementById(containerId);
+cont.innerHTML = '';
+const w = cont.clientWidth || cont.offsetWidth || 600;
+const h = cont.clientHeight || 200;
+const padX = 28, padY = 20;
+const bw = Math.max(8, (w - padX*2) / (data.length || 1) - 10);
+const max = Math.max(1, ...data.map(d=>d.value));
+const svgNS = 'http://www.w3.org/2000/svg';
+const svg = document.createElementNS(svgNS, 'svg');
+svg.setAttribute('width', w);
+svg.setAttribute('height', h);
+
+const base = document.createElementNS(svgNS,'line');
+base.setAttribute('x1', padX);
+base.setAttribute('x2', w - padX);
+base.setAttribute('y1', h - padY);
+base.setAttribute('y2', h - padY);
+base.setAttribute('stroke','rgba(255,255,255,.3)');
+svg.appendChild(base);
+
+data.forEach((d,i)=>{
+const x = padX + i * (bw + 10);
+const barH = Math.round((d.value / max) * (h - padY*2));
+const y = h - padY - barH;
+const rect = document.createElementNS(svgNS,'rect');
+rect.setAttribute('x', x);
+rect.setAttribute('y', y);
+rect.setAttribute('width', bw);
+rect.setAttribute('height', barH);
+rect.setAttribute('rx', 6);
+rect.setAttribute('fill', color);
+rect.setAttribute('opacity', '0.9');
+svg.appendChild(rect);
+
+const label = document.createElementNS(svgNS,'text');
+label.setAttribute('x', x + bw/2);
+label.setAttribute('y', h - padY + 14);
+label.setAttribute('text-anchor', 'middle');
+label.setAttribute('font-size', '11');
+label.setAttribute('fill', 'rgba(255,255,255,.85)');
+label.textContent = d.label;
+svg.appendChild(label);
+
+const val = document.createElementNS(svgNS,'text');
+val.setAttribute('x', x + bw/2);
+val.setAttribute('y', y - 6);
+val.setAttribute('text-anchor', 'middle');
+val.setAttribute('font-size', '11');
+val.setAttribute('fill', 'rgba(255,255,255,.8)');
+val.textContent = d.value;
+svg.appendChild(val);
+});
+
+cont.appendChild(svg);
+}
+
+function escapeHTML(str) {
+return (str||'').replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
+}
+
+// --- Actions ---
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+btn.addEventListener('click', ()=> showTab(btn.dataset.tab));
+});
+
+// Theme
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+save(); applyTheme();
+});
+
+// Search & Filters
+document.getElementById('searchInput').addEventListener('input', renderBooks);
+document.getElementById('filterStatus').addEventListener('change', renderBooks);
+document.getElementById('filterGenre').addEventListener('change', renderBooks);
+
+// Add Book modal open
+document.getElementById('addBookBtn').addEventListener('click', ()=>{
+openBookModal();
+});
+
+// Close modals
+document.querySelectorAll('[data-close]').forEach(btn=>{
+btn.addEventListener('click', ()=>{
+const sel = btn.getAttribute('data-close');
+document.querySelector(sel).classList.add('hidden');
+document.querySelector(sel).classList.remove('flex');
+});
+});
+// Click outside to close
+document.getElementById('bookModal').addEventListener('click', (e)=>{ if (e.target.id==='bookModal'){ e.currentTarget.classList.add('hidden'); e.currentTarget.classList.remove('flex'); }});
+document.getElementById('progressModal').addEventListener('click', (e)=>{ if (e.target.id==='progressModal'){ e.currentTarget.classList.add('hidden'); e.currentTarget.classList.remove('flex'); }});
+
+// Book form submit
+document.getElementById('bookForm').addEventListener('submit', (e)=>{
+e.preventDefault();
+const id = document.getElementById('bookId').value || uid();
+const isNew = !state.books.find(b=>b.id===id);
+const book = {
+id,
+title: document.getElementById('bookTitle').value.trim(),
+author: document.getElementById('bookAuthor').value.trim(),
+genre: document.getElementById('bookGenre').value,
+totalPages: Math.max(1, Number(document.getElementById('bookPages').value || 0)),
+pagesRead: 0,
+status: document.getElementById('bookStatus').value,
+addedAt: todayStr(),
+coverThumb: (document.getElementById('bookForm').dataset.coverThumb || '')
+};
+
+if (!book.title || !book.author || !book.totalPages) return;
+if (!isNew) {
+const existing = state.books.find(b=>b.id===id);
+const keepRead = existing.pagesRead || 0;
+Object.assign(existing, book);
+// mantém capa anterior se a nova vier vazia
+if (!book.coverThumb) existing.coverThumb = existing.coverThumb || '';
+existing.pagesRead = Math.min(keepRead, existing.totalPages);
+} else {
+state.books.push(book);
+}
+save();
+closeBookModal();
+renderBooks();
+});
+
+function openBookModal(book=null){
+const modal = document.getElementById('bookModal');
+modal.classList.remove('hidden'); modal.classList.add('flex');
+document.getElementById('bookModalTitle').textContent = book ? 'Editar livro' : 'Adicionar livro';
+document.getElementById('bookId').value = book?.id || '';
+document.getElementById('bookTitle').value = book?.title || '';
+document.getElementById('bookAuthor').value = book?.author || '';
+document.getElementById('bookGenre').value = book?.genre || 'Ficção';
+document.getElementById('bookPages').value = book?.totalPages || '';
+document.getElementById('bookStatus').value = book?.status || 'Lendo';
+
+// Reset search panel
+document.getElementById('bookForm').dataset.coverThumb = book?.coverThumb || '';
+document.getElementById('extQuery').value = '';
+document.getElementById('extResults').innerHTML = '';
+document.getElementById('extSearchMsg').textContent = 'Resultados de fontes públicas (Open Library e Google Books). Alguns dados podem variar.';
+document.getElementById('extSearchPanel').classList.add('hidden');
+}
+function closeBookModal(){
+const modal = document.getElementById('bookModal');
+modal.classList.add('hidden'); modal.classList.remove('flex');
+}
+
+// Books grid actions
+document.getElementById('booksGrid').addEventListener('click', (e)=>{
+const btn = e.target.closest('button');
+if (!btn) return;
+const id = btn.getAttribute('data-id');
+const action = btn.getAttribute('data-action');
+const book = state.books.find(b=>b.id===id);
+if (!book) return;
+
+if (action==='edit') openBookModal(book);
+if (action==='delete') {
+if (confirm('Excluir este livro?')) {
+state.books = state.books.filter(b=>b.id!==id);
+state.logs = state.logs.filter(l=>l.bookId!==id);
+state.notes = state.notes.filter(n=>n.bookId!==id);
+save(); renderBooks(); renderNotes();
+}
+}
+if (action==='note') {
+showTab('notes');
+document.getElementById('noteBook').value = id;
+document.getElementById('noteText').focus();
+}
+if (action==='progress') {
+openProgressModal(book);
+}
+});
+
+function openProgressModal(book){
+const modal = document.getElementById('progressModal');
+modal.classList.remove('hidden'); modal.classList.add('flex');
+document.getElementById('progressBookId').value = book.id;
+document.getElementById('progressBookTitle').value = `${book.title} — ${book.pagesRead||0}/${book.totalPages} páginas`;
+document.getElementById('progressDate').value = todayStr();
+document.getElementById('progressPages').value = '';
+setTimeout(()=> document.getElementById('progressPages').focus(), 50);
+}
+
+// Progress form
+document.getElementById('progressForm').addEventListener('submit', (e)=>{
+e.preventDefault();
+const bookId = document.getElementById('progressBookId').value;
+const pages = Math.max(1, Number(document.getElementById('progressPages').value||0));
+const date = document.getElementById('progressDate').value || todayStr();
+const book = state.books.find(b=>b.id===bookId);
+if (!book) return;
+state.logs.push({ id: uid(), bookId, pages, date });
+book.pagesRead = Math.min(book.totalPages, (book.pagesRead||0) + pages);
+if (book.pagesRead >= book.totalPages) book.status = 'Concluído';
+save();
+document.getElementById('progressModal').classList.add('hidden');
+document.getElementById('progressModal').classList.remove('flex');
+renderBooks(); updateGoalsSection(); renderStats();
+});
+
+// Quick log
+document.getElementById('quickLogForm').addEventListener('submit', (e)=>{
+e.preventDefault();
+const bookId = document.getElementById('quickBook').value;
+const pages = Math.max(1, Number(document.getElementById('quickPages').value||0));
+const date = document.getElementById('quickDate').value || todayStr();
+const book = state.books.find(b=>b.id===bookId);
+if (!book) return;
+state.logs.push({ id: uid(), bookId, pages, date });
+book.pagesRead = Math.min(book.totalPages, (book.pagesRead||0) + pages);
+if (book.pagesRead >= book.totalPages) book.status = 'Concluído';
+save();
+document.getElementById('quickPages').value = '';
+document.getElementById('quickLogMsg').classList.remove('hidden');
+setTimeout(()=>document.getElementById('quickLogMsg').classList.add('hidden'), 1500);
+renderBooks(); updateGoalsSection(); renderStats();
+});
+
+// Notes
+document.getElementById('noteForm').addEventListener('submit', (e)=>{
+e.preventDefault();
+const bookId = document.getElementById('noteBook').value;
+const text = document.getElementById('noteText').value.trim();
+const page = Number(document.getElementById('notePage').value||0) || null;
+if (!bookId || !text) return;
+state.notes.push({ id: uid(), bookId, text, page, date: todayStr() });
+save();
+document.getElementById('noteText').value = '';
+document.getElementById('notePage').value = '';
+document.getElementById('noteSavedMsg').classList.remove('hidden');
+setTimeout(()=>document.getElementById('noteSavedMsg').classList.add('hidden'), 1500);
+renderNotes();
+});
+
+document.getElementById('notesList').addEventListener('click', (e)=>{
+const btn = e.target.closest('button[data-del-note]');
+if (!btn) return;
+const id = btn.getAttribute('data-del-note');
+state.notes = state.notes.filter(n=>n.id!==id);
+save(); renderNotes();
+});
+
+document.getElementById('notesSearch').addEventListener('input', renderNotes);
+
+// Export notes
+document.getElementById('exportNotesBtn').addEventListener('click', ()=>{
+const lines = state.notes.map(n=>{
+const book = state.books.find(b=>b.id===n.bookId);
+const head = `${n.date || ''} — ${book ? book.title : 'Livro'}`;
+const page = n.page ? ` (p. ${n.page})` : '';
+const text = n.text.replace(/\r?\n/g, '\n ');
+return `${head}${page}\n ${text}`;
+});
+const content = lines.join('\n\n') || 'Sem notas.';
+const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+const a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = `Notas-${todayStr()}.txt`;
+document.body.appendChild(a);
+a.click();
+setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+});
+
+// Settings
+function loadSettingsIntoForm(){
+document.getElementById('speedInput').value = state.settings.speedPagesPerHour;
+document.getElementById('goalDaily').value = state.settings.goals.daily;
+document.getElementById('goalWeekly').value = state.settings.goals.weekly;
+document.getElementById('goalMonthly').value = state.settings.goals.monthly;
+}
+
+document.getElementById('saveSettings').addEventListener('click', ()=>{
+const spd = Math.max(10, Number(document.getElementById('speedInput').value||0));
+const d = Math.max(1, Number(document.getElementById('goalDaily').value||0));
+const w = Math.max(1, Number(document.getElementById('goalWeekly').value||0));
+const m = Math.max(1, Number(document.getElementById('goalMonthly').value||0));
+state.settings.speedPagesPerHour = spd;
+state.settings.goals = { daily: d, weekly: w, monthly: m };
+save();
+document.getElementById('settingsMsg').classList.remove('hidden');
+setTimeout(()=>document.getElementById('settingsMsg').classList.add('hidden'), 1500);
+renderBooks(); updateGoalsSection(); renderStats();
+});
+
+// Data export/import/clear
+document.getElementById('exportDataBtn').addEventListener('click', ()=>{
+const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+const a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = `MeusDadosLeitura-${todayStr()}.json`;
+document.body.appendChild(a);
+a.click();
+setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+});
+
+document.getElementById('importDataInput').addEventListener('change', async (e)=>{
+const file = e.target.files[0];
+if (!file) return;
+try {
+const text = await file.text();
+const data = JSON.parse(text);
+if (!data || typeof data !== 'object') throw new Error('Formato inválido');
+if (!Array.isArray(data.books) || !Array.isArray(data.notes) || !Array.isArray(data.logs)) throw new Error('Dados incompletos');
+if (!data.settings || typeof data.settings !== 'object') throw new Error('Sem configurações');
+state = data;
+save();
+applyTheme(); loadSettingsIntoForm();
+renderBooks(); renderNotes(); renderStats(); updateGoalsSection();
+alert('Dados importados com sucesso!');
+} catch(err) {
+alert('Falha ao importar: ' + err.message);
+} finally {
+e.target.value = '';
+}
+});
+
+document.getElementById('clearDataBtn').addEventListener('click', ()=>{
+if (confirm('Tem certeza? Isso apagará todos os dados deste app.')) {
+state = JSON.parse(JSON.stringify(defaultData));
+save();
+applyTheme(); loadSettingsIntoForm();
+renderBooks(); renderNotes(); renderStats(); updateGoalsSection();
+alert('Prontinho! Tudo zerado.');
+}
+});
+
+// --- External Book Search ---
+document.getElementById('openSearchBtn').addEventListener('click', ()=>{
+document.getElementById('extSearchPanel').classList.toggle('hidden');
+document.getElementById('extQuery').focus();
+});
+document.getElementById('toggleCovers')?.addEventListener('change', ()=>{
+// reexecuta a última busca para atualizar miniaturas
+const evt = new Event('submit');
+document.getElementById('extSearchForm').dispatchEvent(evt);
+});
+document.getElementById('closeSearchPanel').addEventListener('click', ()=>{
+document.getElementById('extSearchPanel').classList.add('hidden');
+});
+
+document.getElementById('extSearchForm').addEventListener('submit', async (e)=>{
+e.preventDefault();
+const q = (document.getElementById('extQuery').value || '').trim();
+const msg = document.getElementById('extSearchMsg');
+const resultsBox = document.getElementById('extResults');
+resultsBox.innerHTML = '';
+if (!q) { msg.textContent = 'Digite um título ou autor para buscar.'; return; }
+msg.textContent = 'Buscando...';
+try {
+const [ol, gb] = await Promise.allSettled([searchOpenLibrary(q), searchGoogleBooks(q)]);
+const combined = [...(ol.value||[]), ...(gb.value||[])];
+const dedup = dedupeBooks(combined).slice(0, 12);
+if (dedup.length === 0) {
+msg.textContent = 'Nada encontrado. Tente variar o termo.';
+return;
+}
+msg.textContent = `Encontrados ${dedup.length} resultados. Clique em “Preencher” para usar.`;
+dedup.forEach((r, idx)=>{
+const item = document.createElement('div');
+item.className = 'rounded-lg border border-white/15 bg-white/5 p-3 flex items-start justify-between gap-3';
+const showCovers = document.getElementById('toggleCovers')?.checked;
+const left = document.createElement('div');
+left.className = 'flex items-start gap-3 min-w-0';
+const thumb = document.createElement('div');
+thumb.className = 'w-10 h-14 rounded-md overflow-hidden bg-white/10 border border-white/15 shrink-0 grid place-content-center text-[10px] text-white/70';
+if (showCovers && r.thumb) {
+const img = document.createElement('img');
+img.src = r.thumb;
+img.alt = 'Capa';
+img.className = 'w-full h-full object-cover';
+img.onerror = function(){ this.src=''; this.alt='Image failed to load'; this.style.display='none'; };
+thumb.appendChild(img);
+} else {
+thumb.textContent = 'Sem capa';
+}
+left.appendChild(thumb);
+const meta = document.createElement('div');
+meta.className = 'min-w-0';
+meta.innerHTML = `
+<div class="font-medium truncate">${escapeHTML(r.title || 'Sem título')}</div>
+<div class="text-sm text-white/80 truncate">${escapeHTML(r.author || 'Autor desconhecido')}</div>
+<div class="text-xs text-white/60 mt-1">${r.year ? 'Ano: '+r.year+' · ' : ''}${r.pages ? 'Páginas: '+r.pages+' · ' : ''}Fonte: ${r.source}</div>
+`;
+left.appendChild(meta);
+item.appendChild(left);
+const actions = document.createElement('div');
+actions.className = 'shrink-0 flex gap-2';
+actions.innerHTML = `<button data-pick="${idx}" class="px-3 py-1.5 rounded-md bg-indigo-500 hover:bg-indigo-400 text-sm font-semibold">Preencher</button>`;
+item.appendChild(actions);
+resultsBox.appendChild(item);
+});
+// store on element for easy access
+resultsBox._data = dedup;
+} catch(err) {
+msg.textContent = 'Erro ao buscar. Verifique sua conexão e tente novamente.';
+}
+});
+
+document.getElementById('extResults').addEventListener('click', (e)=>{
+const btn = e.target.closest('button[data-pick]');
+if (!btn) return;
+const idx = Number(btn.getAttribute('data-pick'));
+const list = document.getElementById('extResults')._data || [];
+const r = list[idx];
+if (!r) return;
+// Fill form fields
+document.getElementById('bookTitle').value = r.title || '';
+document.getElementById('bookAuthor').value = r.author || '';
+document.getElementById('bookPages').value = r.pages || '';
+// temp: store thumb to attach on save
+document.getElementById('bookForm').dataset.coverThumb = r.thumb || '';
+if (!document.getElementById('bookStatus').value) {
+document.getElementById('bookStatus').value = 'Quero ler';
+}
+// Friendly feedback
+const msg = document.getElementById('extSearchMsg');
+msg.textContent = 'Campos preenchidos! Revise e clique em “Salvar”.';
+});
+
+async function searchOpenLibrary(q){
+const url = 'https://openlibrary.org/search.json?q=' + encodeURIComponent(q) + '&limit=12';
+const r = await fetch(url);
+if (!r.ok) throw new Error('OpenLibrary falhou');
+const data = await r.json();
+const docs = data.docs || [];
+return docs.map(d=>({
+title: d.title || '',
+author: (d.author_name && d.author_name[0]) || '',
+pages: d.number_of_pages_median || null,
+year: d.first_publish_year || null,
+thumb: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
+source: 'OpenLibrary'
+}));
+}
+async function searchGoogleBooks(q){
+const url = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(q) + '&maxResults=12';
+const r = await fetch(url);
+if (!r.ok) throw new Error('Google Books falhou');
+const data = await r.json();
+const items = data.items || [];
+return items.map(it=>{
+const info = it.volumeInfo || {};
+const pub = (info.publishedDate || '').slice(0,4) || null;
+const img = (info.imageLinks && (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail)) || null;
+return {
+title: info.title || '',
+author: (info.authors && info.authors[0]) || '',
+pages: info.pageCount || null,
+year: pub,
+thumb: img,
+source: 'GoogleBooks'
+};
+});
+}
+function dedupeBooks(arr){
+const seen = new Set();
+const out = [];
+arr.forEach(r=>{
+const key = ((r.title||'') + '|' + (r.author||'')).toLowerCase().trim();
+if (!r.title || seen.has(key)) return;
+seen.add(key); out.push(r);
+});
+return out;
+}
+
+// Settings and init
+function init() {
+if (state.books.length === 0 && state.logs.length === 0 && state.notes.length === 0) {
+const b1 = { id: uid(), title: 'A Montanha Mágica', author: 'Thomas Mann', genre: 'Ficção', totalPages: 720, pagesRead: 0, status: 'Quero ler', addedAt: todayStr() };
+const b2 = { id: uid(), title: 'Hábitos Atômicos', author: 'James Clear', genre: 'Não-ficção', totalPages: 320, pagesRead: 80, status: 'Lendo', addedAt: todayStr() };
+state.books.push(b1,b2);
+state.logs.push({ id: uid(), bookId: b2.id, pages: 30, date: todayStr() });
+state.notes.push({ id: uid(), bookId: b2.id, text: 'Pequenas melhorias geram grandes mudanças ao longo do tempo.', page: 17, date: todayStr() });
+save();
+}
+applyTheme();
+loadSettingsIntoForm();
+showTab('library');
+const quickDate = document.getElementById('quickDate');
+if (quickDate) quickDate.value = todayStr();
+renderBooks();
+renderNotes();
+renderStats();
+updateGoalsSection();
+window.addEventListener('resize', ()=> {
+if (!document.getElementById('tab-stats').classList.contains('hidden')) renderStats();
+});
+}
+
+init();
+
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9822fb3597caf1af',t:'MTc1ODM4ODY5OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
